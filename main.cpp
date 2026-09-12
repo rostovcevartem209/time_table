@@ -3,6 +3,7 @@
 #include <vector>
 #include "data_manager.h"
 #include "validator.h"
+#include "genetic.h"
 
 int main() {
     SetConsoleOutputCP(CP_UTF8);
@@ -12,26 +13,22 @@ int main() {
     dm.loadTestData();
 
     std::cout << "Система автоматической генерации расписания\n";
-    std::cout << "Разработчик Роман Хориков студент 1 курса\n";
+    std::cout << "Разработчики Ростовцев Артём Кулик Макар Фишман Илья\n";
     std::cout << "--------------------------------------------------\n";
 
-    // Создаем тестовое расписание
-    std::vector<Gene> testSchedule;
+    // генерируем 10 случайных расписаний
+    for (int i = 1; i <= 10; ++i) {
 
-    // Занятие 1 группа 1 предмет 1 преподаватель 1 аудитория 1 время 1
-    testSchedule.push_back(Gene{ 1, 1, 1, 1, 1, false });
+        // создаем случайный вариант
+        std::vector<Gene> randomSchedule = GeneticAlgorithm::generateRandomSchedule(dm);
 
-    // Конфликт 1 группа 1 идет на другой предмет в время 1
-    testSchedule.push_back(Gene{ 1, 2, 2, 2, 1, false });
+        // считаем ошибки
+        int conflicts = Validator::countHardConflicts(randomSchedule);
 
-    // Конфликт 2 преподаватель 1 ведет у группы 2 в время 1
-    testSchedule.push_back(Gene{ 2, 1, 1, 2, 1, false });
-
-    // Запускаем проверку
-    int conflictsCount = Validator::countHardConflicts(testSchedule);
-
-    std::cout << "Количество занятий в тестовом расписании " << testSchedule.size() << "\n";
-    std::cout << "Найдено жестких конфликтов " << conflictsCount << "\n";
+        // выводим результат на экран
+        std::cout << "Вариант " << i << " создано занятий " << randomSchedule.size()
+            << " конфликтов найдено " << conflicts << "\n";
+    }
 
     return 0;
 }
