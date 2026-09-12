@@ -13,4 +13,7 @@ public:
 
     // мутация случайное изменение одного занятия
     static void mutate(std::vector<Gene>& schedule, const DataManager& dm);
+
+    // турнирный отбор лучших родителей
+    static std::vector<Gene> tournamentSelection(const std::vector<std::vector<Gene>>& population, const DataManager& dm);
 };
