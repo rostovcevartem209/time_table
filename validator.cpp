@@ -2,11 +2,11 @@
 
 int Validator::countHardConflicts(const std::vector<Gene>& schedule) {
     int conflicts = 0;
-    int totalGenes = schedule.size();
+    size_t totalGenes = schedule.size();
 
     // Сравниваем каждую пару с каждой другой
-    for (int i = 0; i < totalGenes; ++i) {
-        for (int j = i + 1; j < totalGenes; ++j) {
+    for (size_t i = 0; i < totalGenes; ++i) {
+        for (size_t j = i + 1; j < totalGenes; ++j) {
 
             // Если две пары проходят в одно и то же время
             if (schedule[i].timeSlotId == schedule[j].timeSlotId) {
