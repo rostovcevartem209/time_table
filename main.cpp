@@ -5,6 +5,7 @@
 #include "validator.h"
 #include "genetic.h"
 #include "fitness.h"
+#include "exporter.h"
 
 int main() {
     SetConsoleOutputCP(CP_UTF8);
@@ -44,7 +45,6 @@ int main() {
 
         std::vector<std::vector<Gene>> newPopulation(populationSize);
         for (int i = 0; i < populationSize; ++i) {
-            // используем честный турнирный отбор родителей
             std::vector<Gene> parent1 = GeneticAlgorithm::tournamentSelection(population, dm);
             std::vector<Gene> parent2 = GeneticAlgorithm::tournamentSelection(population, dm);
 
@@ -57,19 +57,13 @@ int main() {
         population = newPopulation;
     }
 
-    std::cout << "Эволюция с турнирным отбором завершена\n";
+    // сохраняем результат в файл
+    Exporter::saveToFile("schedule.txt", bestSchedule, dm);
+
+    std::cout << "Эволюция завершена успешно\n";
     std::cout << "Лучший штрафной балл " << bestPenalty << "\n";
     std::cout << "Жестких конфликтов " << Validator::countHardConflicts(bestSchedule) << "\n";
-    std::cout << "--------------------------------------------------\n";
-    std::cout << "Итоговое сгенерированное расписание:\n";
-
-    // выводим расшифровку расписания
-    for (const Gene& gene : bestSchedule) {
-        std::cout << "Группа ID " << gene.groupId
-            << " | Предмет ID " << gene.disciplineId
-            << " | Слот времени " << gene.timeSlotId
-            << " | Аудитория ID " << gene.roomId << "\n";
-    }
+    std::cout << "Результат успешно сохранен в файл schedule.txt\n";
 
     return 0;
 }

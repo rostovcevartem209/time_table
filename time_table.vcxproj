@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="data_manager.h" />
+    <ClInclude Include="exporter.h" />
     <ClInclude Include="fitness.h" />
     <ClInclude Include="genetic.h" />
     <ClInclude Include="models.h" />
@@ -147,6 +148,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="data_manager.cpp" />
+    <ClCompile Include="exporter.cpp" />
     <ClCompile Include="fitness.cpp" />
     <ClCompile Include="genetic.cpp" />
     <ClCompile Include="main.cpp" />
