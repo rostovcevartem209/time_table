@@ -1,25 +1,54 @@
 #include "fitness.h"
+#include "validator.h"
+#include <map>
+#include <algorithm>
 
 int Fitness::calculatePenalty(const std::vector<Gene>& schedule) {
     int penalty = 0;
 
-    // считаем жесткие конфликты
-    int conflicts = Validator::countHardConflicts(schedule);
+    // жесткие конфликты дают огромный штраф чтобы алгоритм сразу их отбрасывал
+    int hardConflicts = Validator::countHardConflicts(schedule);
+    penalty += hardConflicts * 1000;
 
-    // за каждый конфликт даем 1000 штрафных баллов
-    penalty = penalty + conflicts * 1000;
+    // словарь для группировки занятий ключ это айди группы значение это дни
+    std::map<int, std::map<int, std::vector<int>>> groupDays;
 
-    // проходим по всем занятиям чтобы проверить мягкие ограничения
-    for (size_t i = 0; i < schedule.size(); ++i) {
+    for (const Gene& gene : schedule) {
+        // вычисляем индекс дня от 0 до 4
+        int dayIndex = (gene.timeSlotId - 1) / 6;
 
-        // допустим что в дне 6 пар
-        // проверяем является ли пара 5 или 6 по счету
-        int pairNumber = schedule[i].timeSlotId % 6;
+        // сохраняем номер слота для конкретной группы в конкретный день
+        groupDays[gene.groupId][dayIndex].push_back(gene.timeSlotId);
+    }
 
-        // если остаток 5 или 0 значит пара поздняя
-        if (pairNumber == 5 || pairNumber == 0) {
-            // даем 10 штрафных баллов за вечернюю пару
-            penalty = penalty + 10;
+    // проходим по всем группам и считаем окна
+    for (auto& groupPair : groupDays) {
+        for (auto& dayPair : groupPair.second) {
+            std::vector<int>& slots = dayPair.second;
+
+            // если в день больше одной пары проверяем на окна
+            if (slots.size() > 1) {
+
+                // сортируем пары по времени по возрастанию
+                std::sort(slots.begin(), slots.end());
+
+                int firstSlot = slots.front();
+                int lastSlot = slots.back();
+
+                // сколько пар должно быть в идеале без пустых окон
+                int expectedCount = lastSlot - firstSlot + 1;
+
+                // сколько пар стоит на самом деле
+                int actualCount = slots.size();
+
+                // разница это и есть количество окон
+                int windows = expectedCount - actualCount;
+
+                if (windows > 0) {
+                    // за каждое окно накидываем штраф 10 баллов
+                    penalty += windows * 10;
+                }
+            }
         }
     }
 
