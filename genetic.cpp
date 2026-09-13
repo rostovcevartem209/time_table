@@ -21,7 +21,10 @@ std::vector<Gene> GeneticAlgorithm::generateRandomSchedule(const DataManager& dm
             Gene gene;
             gene.groupId = plan.groupId;
             gene.disciplineId = plan.disciplineId;
-            gene.teacherId = teachers[0].id;
+
+            // выбираем случайного преподавателя
+            std::uniform_int_distribution<> teacherDist(0, teachers.size() - 1);
+            gene.teacherId = teachers[teacherDist(gen)].id;
 
             std::uniform_int_distribution<> roomDist(0, rooms.size() - 1);
             gene.roomId = rooms[roomDist(gen)].id;
@@ -68,6 +71,11 @@ void GeneticAlgorithm::mutate(std::vector<Gene>& schedule, const DataManager& dm
     std::uniform_int_distribution<> geneDist(0, schedule.size() - 1);
     int index = geneDist(gen);
 
+    // если пара закреплена диспетчером мы ее не трогаем
+    if (schedule[index].isPinned == true) {
+        return;
+    }
+
     std::uniform_int_distribution<> coin(0, 1);
 
     if (coin(gen) == 0) {
@@ -88,14 +96,12 @@ std::vector<Gene> GeneticAlgorithm::tournamentSelection(const std::vector<std::v
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dist(0, population.size() - 1);
 
-    // выбираем двух случайных кандидатов из популяции
     int index1 = dist(gen);
     int index2 = dist(gen);
 
     int penalty1 = Fitness::calculatePenalty(population[index1]);
     int penalty2 = Fitness::calculatePenalty(population[index2]);
 
-    // возвращаем того у кого штраф меньше
     if (penalty1 < penalty2) {
         return population[index1];
     }
