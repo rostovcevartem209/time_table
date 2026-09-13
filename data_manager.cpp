@@ -119,3 +119,19 @@ const std::vector<Teacher>& DataManager::getTeachers() const { return teachers; 
 const std::vector<Discipline>& DataManager::getDisciplines() const { return disciplines; }
 const std::vector<Room>& DataManager::getRooms() const { return rooms; }
 const std::vector<LessonPlan>& DataManager::getLessonPlans() const { return lessonPlans; }
+
+std::string DataManager::formatTime(int timeSlotId) const {
+    if (timeSlotId < 1 || timeSlotId > 30) {
+        return "Неизвестное время";
+    }
+
+    // массив дней недели
+    const std::string days[] = { "ПН", "ВТ", "СР", "ЧТ", "ПТ" };
+
+    // вычисляем индекс дня и номер пары
+    int dayIndex = (timeSlotId - 1) / 6;
+    int pairNumber = (timeSlotId - 1) % 6 + 1;
+
+    // склеиваем строку
+    return days[dayIndex] + " " + std::to_string(pairNumber) + " пара";
+}

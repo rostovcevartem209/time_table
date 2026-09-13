@@ -16,7 +16,7 @@ void Exporter::saveToFile(const std::string& filename, const std::vector<Gene>& 
     for (const Gene& gene : schedule) {
         file << "Группа " << dm.getGroupName(gene.groupId)
             << " | Предмет " << dm.getDisciplineName(gene.disciplineId)
-            << " | Время " << gene.timeSlotId
+            << " | Время " << dm.formatTime(gene.timeSlotId)
             << " | Аудитория " << dm.getRoomName(gene.roomId)
             << " | Преподаватель " << dm.getTeacherName(gene.teacherId) << "\n";
     }

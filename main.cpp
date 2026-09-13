@@ -42,10 +42,10 @@ std::vector<Gene> runEvolution(const DataManager& dm) {
         for (int i = 0; i < populationSize; ++i) {
             std::vector<Gene> parent1 = GeneticAlgorithm::tournamentSelection(population, dm);
             std::vector<Gene> parent2 = GeneticAlgorithm::tournamentSelection(population, dm);
-
+            
             std::vector<Gene> child = GeneticAlgorithm::crossover(parent1, parent2);
             GeneticAlgorithm::mutate(child, dm);
-
+            
             newPopulation[i] = child;
         }
         population = newPopulation;
@@ -55,16 +55,16 @@ std::vector<Gene> runEvolution(const DataManager& dm) {
 
 int main() {
     // настраиваем кодировку только для виндовс
-#ifdef _WIN32
+    #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
-#endif
+    #endif
 
     DataManager dm;
-
+    
     // загружаем реальные данные из текстовых файлов
     dm.loadFromFiles();
-
+    
     std::vector<Gene> currentSchedule;
     bool isRunning = true;
     int choice = 0;
@@ -79,7 +79,7 @@ int main() {
         std::cout << "3 Экспортировать расписание в файл txt\n";
         std::cout << "0 Выход из программы\n";
         std::cout << "Ваш выбор ";
-
+        
         std::cin >> choice;
 
         if (choice == 1) {
@@ -88,19 +88,16 @@ int main() {
             std::cout << "Эволюция завершена успешно\n";
             std::cout << "Штрафных баллов " << Fitness::calculatePenalty(currentSchedule) << "\n";
             std::cout << "Жестких конфликтов " << Validator::countHardConflicts(currentSchedule) << "\n";
-        }
+        } 
         else if (choice == 2) {
             if (currentSchedule.empty()) {
                 std::cout << "\nРасписание еще не сгенерировано\n";
-            }
-            else {
+            } else {
                 std::cout << "\nТекущее расписание\n";
                 for (const Gene& gene : currentSchedule) {
-
-                    // используем функции получения названий для красивого вывода
                     std::cout << "Группа " << dm.getGroupName(gene.groupId)
                         << " Предмет " << dm.getDisciplineName(gene.disciplineId)
-                        << " Время " << gene.timeSlotId
+                        << " Время " << dm.formatTime(gene.timeSlotId)
                         << " Аудитория " << dm.getRoomName(gene.roomId)
                         << " Преподаватель " << dm.getTeacherName(gene.teacherId) << "\n";
                 }
@@ -109,8 +106,7 @@ int main() {
         else if (choice == 3) {
             if (currentSchedule.empty()) {
                 std::cout << "\nНет данных для экспорта\n";
-            }
-            else {
+            } else {
                 Exporter::saveToFile("schedule.txt", currentSchedule, dm);
                 std::cout << "\nРасписание сохранено в файл schedule.txt\n";
             }

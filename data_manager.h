@@ -28,4 +28,6 @@ public:
     std::string getTeacherName(int id) const;
     std::string getDisciplineName(int id) const;
     std::string getRoomName(int id) const;
+    // функция для перевода слота в день недели и номер пары
+    std::string formatTime(int timeSlotId) const;
 };
