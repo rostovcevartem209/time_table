@@ -1,31 +1,31 @@
-#pragma once // Защита от повторного включения файла
+#pragma once
 #include "models.h"
 #include <vector>
+#include <string>
 
 class DataManager {
 private:
-    // Векторы для хранения всех данных расписания
     std::vector<Group> groups;
     std::vector<Teacher> teachers;
-    std::vector<Room> rooms;
     std::vector<Discipline> disciplines;
+    std::vector<Room> rooms;
     std::vector<LessonPlan> lessonPlans;
 
 public:
-    // Методы для добавления новых записей в систему
-    void addGroup(const Group& group);
-    void addTeacher(const Teacher& teacher);
-    void addRoom(const Room& room);
-    void addDiscipline(const Discipline& discipline);
-    void addLessonPlan(const LessonPlan& plan);
+    void loadTestData();
 
-    // Методы для получения данных (возвращают константные ссылки для экономии памяти)
+    // новая функция для загрузки из файлов
+    void loadFromFiles();
+
     const std::vector<Group>& getGroups() const;
     const std::vector<Teacher>& getTeachers() const;
-    const std::vector<Room>& getRooms() const;
     const std::vector<Discipline>& getDisciplines() const;
+    const std::vector<Room>& getRooms() const;
     const std::vector<LessonPlan>& getLessonPlans() const;
 
-    // Метод для быстрой загрузки тестовых данных
-    void loadTestData();
+    // функции для поиска названий
+    std::string getGroupName(int id) const;
+    std::string getTeacherName(int id) const;
+    std::string getDisciplineName(int id) const;
+    std::string getRoomName(int id) const;
 };

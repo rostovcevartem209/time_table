@@ -12,7 +12,7 @@
 #include <windows.h>
 #endif
 
-// функция для запуска эволюции чтобы не засорять главное меню
+// функция для запуска эволюции
 std::vector<Gene> runEvolution(const DataManager& dm) {
     int populationSize = 50;
     std::vector<std::vector<Gene>> population(populationSize);
@@ -61,7 +61,9 @@ int main() {
 #endif
 
     DataManager dm;
-    dm.loadTestData();
+
+    // загружаем реальные данные из текстовых файлов
+    dm.loadFromFiles();
 
     std::vector<Gene> currentSchedule;
     bool isRunning = true;
@@ -94,11 +96,13 @@ int main() {
             else {
                 std::cout << "\nТекущее расписание\n";
                 for (const Gene& gene : currentSchedule) {
-                    std::cout << "Группа " << gene.groupId
-                        << " Предмет " << gene.disciplineId
+
+                    // используем функции получения названий для красивого вывода
+                    std::cout << "Группа " << dm.getGroupName(gene.groupId)
+                        << " Предмет " << dm.getDisciplineName(gene.disciplineId)
                         << " Время " << gene.timeSlotId
-                        << " Аудитория " << gene.roomId
-                        << " Преподаватель " << gene.teacherId << "\n";
+                        << " Аудитория " << dm.getRoomName(gene.roomId)
+                        << " Преподаватель " << dm.getTeacherName(gene.teacherId) << "\n";
                 }
             }
         }
