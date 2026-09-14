@@ -145,7 +145,7 @@ void editSchedule(std::vector<Gene>& schedule, const DataManager& dm) {
     }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
@@ -153,6 +153,13 @@ int main() {
 
     DataManager dm;
     dm.loadFromFiles();
+
+    // Скрытый режим для графического интерфейса
+    if (argc > 1 && std::string(argv[1]) == "--auto") {
+        std::vector<Gene> schedule = runEvolution(dm);
+        Exporter::saveToFile("schedule.txt", schedule, dm);
+        return 0; // Сразу завершаем работу без меню
+    }
 
     std::vector<Gene> currentSchedule;
     bool isRunning = true;
