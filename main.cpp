@@ -16,11 +16,9 @@ std::vector<Gene> runEvolution(const DataManager& dm, const std::vector<Gene>& e
     int populationSize = 50;
     std::vector<std::vector<Gene>> population(populationSize);
 
-    // если есть старое расписание мы должны сохранить закрепленные пары
     for (int i = 0; i < populationSize; ++i) {
         std::vector<Gene> newIndividual = GeneticAlgorithm::generateRandomSchedule(dm);
 
-        // переносим закрепленные гены из старого расписания
         if (!existingSchedule.empty()) {
             for (size_t j = 0; j < existingSchedule.size(); ++j) {
                 if (existingSchedule[j].isPinned) {
@@ -32,12 +30,14 @@ std::vector<Gene> runEvolution(const DataManager& dm, const std::vector<Gene>& e
     }
 
     std::vector<Gene> bestSchedule = population[0];
-    int bestPenalty = Fitness::calculatePenalty(bestSchedule);
+    // передаем dm в расчет штрафа
+    int bestPenalty = Fitness::calculatePenalty(bestSchedule, dm);
 
     int generations = 100;
     for (int gen = 0; gen < generations; ++gen) {
         for (int i = 0; i < populationSize; ++i) {
-            int penalty = Fitness::calculatePenalty(population[i]);
+            // передаем dm в расчет штрафа
+            int penalty = Fitness::calculatePenalty(population[i], dm);
             if (penalty < bestPenalty) {
                 bestPenalty = penalty;
                 bestSchedule = population[i];
@@ -56,7 +56,6 @@ std::vector<Gene> runEvolution(const DataManager& dm, const std::vector<Gene>& e
             std::vector<Gene> child = GeneticAlgorithm::crossover(parent1, parent2);
             GeneticAlgorithm::mutate(child, dm);
 
-            // защищаем закрепленные гены от случайного изменения
             if (!existingSchedule.empty()) {
                 for (size_t j = 0; j < existingSchedule.size(); ++j) {
                     if (existingSchedule[j].isPinned) {
@@ -99,24 +98,36 @@ void editSchedule(std::vector<Gene>& schedule, const DataManager& dm) {
         return;
     }
 
-    int newTime, newRoom;
+    std::cout << "\nШпаргалка по времени\n";
+    std::cout << "Понедельник слоты от 1 до 6\n";
+    std::cout << "Вторник слоты от 7 до 12\n";
+    std::cout << "Среда слоты от 13 до 18\n";
+    std::cout << "Четверг слоты от 19 до 24\n";
+    std::cout << "Пятница слоты от 25 до 30\n";
+
+    int newTime;
     std::cout << "Введите новый слот времени от 1 до 30 ";
     std::cin >> newTime;
+
+    std::cout << "\nСписок доступных аудиторий\n";
+    const std::vector<Room>& rooms = dm.getRooms();
+    for (const Room& r : rooms) {
+        std::cout << "Айди " << r.id << " Название " << r.name << "\n";
+    }
+
+    int newRoom;
     std::cout << "Введите новый айди аудитории ";
     std::cin >> newRoom;
 
-    // сохраняем старые значения на случай ошибки
     int oldTime = schedule[index].timeSlotId;
     int oldRoom = schedule[index].roomId;
 
-    // применяем изменения
     schedule[index].timeSlotId = newTime;
     schedule[index].roomId = newRoom;
 
-    // проверяем не сломали ли мы расписание
-    if (Validator::countHardConflicts(schedule) > 0) {
+    // передаем dm в валидатор
+    if (Validator::countHardConflicts(schedule, dm) > 0) {
         std::cout << "\nОшибка Перенос вызывает конфликт Изменения отменены\n";
-        // откатываем назад
         schedule[index].timeSlotId = oldTime;
         schedule[index].roomId = oldRoom;
     }
@@ -163,11 +174,11 @@ int main() {
 
         if (choice == 1) {
             std::cout << "\nЗапуск алгоритма подождите\n";
-            // передаем текущее расписание чтобы сохранить закрепленные пары
             currentSchedule = runEvolution(dm, currentSchedule);
             std::cout << "Эволюция завершена успешно\n";
-            std::cout << "Штрафных баллов " << Fitness::calculatePenalty(currentSchedule) << "\n";
-            std::cout << "Жестких конфликтов " << Validator::countHardConflicts(currentSchedule) << "\n";
+            // передаем dm в расчет штрафа и конфликтов
+            std::cout << "Штрафных баллов " << Fitness::calculatePenalty(currentSchedule, dm) << "\n";
+            std::cout << "Жестких конфликтов " << Validator::countHardConflicts(currentSchedule, dm) << "\n";
         }
         else if (choice == 2) {
             if (currentSchedule.empty()) {

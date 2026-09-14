@@ -15,13 +15,10 @@ void DataManager::loadFromFiles() {
     // загрузка групп
     std::ifstream fg("groups.txt");
     if (fg.is_open()) {
-        int id;
+        int id, count;
         std::string name;
-        while (fg >> id >> name) {
-            Group g;
-            g.id = id;
-            g.name = name;
-            g.studentsCount = 25;
+        while (fg >> id >> name >> count) {
+            Group g; g.id = id; g.name = name; g.studentsCount = count;
             groups.push_back(g);
         }
         fg.close();
@@ -30,12 +27,10 @@ void DataManager::loadFromFiles() {
     // загрузка преподавателей
     std::ifstream ft("teachers.txt");
     if (ft.is_open()) {
-        int id;
+        int id, discId, unavail;
         std::string name;
-        while (ft >> id >> name) {
-            Teacher t;
-            t.id = id;
-            t.name = name;
+        while (ft >> id >> name >> discId >> unavail) {
+            Teacher t; t.id = id; t.name = name; t.disciplineId = discId; t.unavailableDay = unavail;
             teachers.push_back(t);
         }
         ft.close();
@@ -44,12 +39,10 @@ void DataManager::loadFromFiles() {
     // загрузка дисциплин
     std::ifstream fd("disciplines.txt");
     if (fd.is_open()) {
-        int id;
+        int id, type;
         std::string name;
-        while (fd >> id >> name) {
-            Discipline d;
-            d.id = id;
-            d.name = name;
+        while (fd >> id >> name >> type) {
+            Discipline d; d.id = id; d.name = name; d.type = type;
             disciplines.push_back(d);
         }
         fd.close();
@@ -58,13 +51,10 @@ void DataManager::loadFromFiles() {
     // загрузка аудиторий
     std::ifstream fr("rooms.txt");
     if (fr.is_open()) {
-        int id;
+        int id, cap, type;
         std::string name;
-        while (fr >> id >> name) {
-            Room r;
-            r.id = id;
-            r.name = name;
-            r.capacity = 30;
+        while (fr >> id >> name >> cap >> type) {
+            Room r; r.id = id; r.name = name; r.capacity = cap; r.type = type;
             rooms.push_back(r);
         }
         fr.close();

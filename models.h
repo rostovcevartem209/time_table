@@ -10,17 +10,21 @@ struct Group {
 struct Teacher {
     int id;
     std::string name;
+    int disciplineId;
+    int unavailableDay;
 };
 
 struct Discipline {
     int id;
     std::string name;
+    int type;
 };
 
 struct Room {
     int id;
     std::string name;
     int capacity;
+    int type;
 };
 
 struct LessonPlan {

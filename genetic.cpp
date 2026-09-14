@@ -22,9 +22,21 @@ std::vector<Gene> GeneticAlgorithm::generateRandomSchedule(const DataManager& dm
             gene.groupId = plan.groupId;
             gene.disciplineId = plan.disciplineId;
 
-            // выбираем случайного преподавателя
-            std::uniform_int_distribution<> teacherDist(0, teachers.size() - 1);
-            gene.teacherId = teachers[teacherDist(gen)].id;
+            // выбираем только тех преподавателей которые ведут этот предмет
+            std::vector<int> validTeachers;
+            for (const Teacher& t : teachers) {
+                if (t.disciplineId == plan.disciplineId) {
+                    validTeachers.push_back(t.id);
+                }
+            }
+
+            if (!validTeachers.empty()) {
+                std::uniform_int_distribution<> teacherDist(0, validTeachers.size() - 1);
+                gene.teacherId = validTeachers[teacherDist(gen)];
+            }
+            else {
+                gene.teacherId = teachers[0].id;
+            }
 
             std::uniform_int_distribution<> roomDist(0, rooms.size() - 1);
             gene.roomId = rooms[roomDist(gen)].id;
@@ -71,7 +83,6 @@ void GeneticAlgorithm::mutate(std::vector<Gene>& schedule, const DataManager& dm
     std::uniform_int_distribution<> geneDist(0, schedule.size() - 1);
     int index = geneDist(gen);
 
-    // если пара закреплена диспетчером мы ее не трогаем
     if (schedule[index].isPinned == true) {
         return;
     }
@@ -99,8 +110,9 @@ std::vector<Gene> GeneticAlgorithm::tournamentSelection(const std::vector<std::v
     int index1 = dist(gen);
     int index2 = dist(gen);
 
-    int penalty1 = Fitness::calculatePenalty(population[index1]);
-    int penalty2 = Fitness::calculatePenalty(population[index2]);
+    // добавили dm для правильного подсчета штрафа
+    int penalty1 = Fitness::calculatePenalty(population[index1], dm);
+    int penalty2 = Fitness::calculatePenalty(population[index2], dm);
 
     if (penalty1 < penalty2) {
         return population[index1];

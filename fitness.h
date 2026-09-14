@@ -1,9 +1,9 @@
 #pragma once
 #include "models.h"
-#include "validator.h"
+#include "data_manager.h"
 #include <vector>
 
 class Fitness {
 public:
-    static int calculatePenalty(const std::vector<Gene>& schedule);
+    static int calculatePenalty(const std::vector<Gene>& schedule, const DataManager& dm);
 };
