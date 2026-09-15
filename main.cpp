@@ -9,7 +9,31 @@
 
 #ifdef _WIN32
 #include <windows.h>
+
+#include <fstream> 
 #endif
+
+
+// Сохраняем сырые ID расписания для Питона
+void saveRawSchedule(const std::vector<Gene>& schedule) {
+    std::ofstream out("schedule_raw.txt");
+    for (const auto& g : schedule) {
+        out << g.groupId << " " << g.disciplineId << " " << g.timeSlotId << " "
+            << g.roomId << " " << g.teacherId << " " << g.isPinned << "\n";
+    }
+}
+
+// Загружаем сырые ID обратно в память
+std::vector<Gene> loadRawSchedule() {
+    std::vector<Gene> schedule;
+    std::ifstream in("schedule_raw.txt");
+    Gene g;
+    // Считываем данные в том же порядке
+    while (in >> g.groupId >> g.disciplineId >> g.timeSlotId >> g.roomId >> g.teacherId >> g.isPinned) {
+        schedule.push_back(g);
+    }
+    return schedule;
+}
 
 // функция для запуска эволюции
 std::vector<Gene> runEvolution(const DataManager& dm, const std::vector<Gene>& existingSchedule = {}) {
@@ -154,11 +178,44 @@ int main(int argc, char* argv[]) {
     DataManager dm;
     dm.loadFromFiles();
 
-    // Скрытый режим для графического интерфейса
+    // 1. Скрытый режим генерации
     if (argc > 1 && std::string(argv[1]) == "--auto") {
         std::vector<Gene> schedule = runEvolution(dm);
         Exporter::saveToFile("schedule.txt", schedule, dm);
-        return 0; // Сразу завершаем работу без меню
+        saveRawSchedule(schedule); // Сохраняем слепок памяти
+        return 0;
+    }
+
+    // 2. Скрытый режим редактирования из интерфейса
+        // Вызов: time_table.exe --edit <индекс> <новое_время> <новая_аудитория>
+    if (argc > 4 && std::string(argv[1]) == "--edit") {
+        int index = std::stoi(argv[2]);
+        int newTime = std::stoi(argv[3]);
+        int newRoom = std::stoi(argv[4]);
+
+        std::vector<Gene> schedule = loadRawSchedule();
+        if (index < 0 || index >= schedule.size()) return 1; // Ошибка индекса
+
+        // Запоминаем, сколько конфликтов было ДО нашего переноса
+        int conflictsBefore = Validator::countHardConflicts(schedule, dm);
+
+        schedule[index].timeSlotId = newTime;
+        schedule[index].roomId = newRoom;
+
+        // Считаем конфликты ПОСЛЕ переноса
+        int conflictsAfter = Validator::countHardConflicts(schedule, dm);
+
+        // Блокируем, только если мы СОЗДАЛИ новую проблему
+        if (conflictsAfter > conflictsBefore) {
+            return 2; // Код 2 (Конфликт!)
+        }
+
+        // Если стало лучше или так же - сохраняем и закрепляем
+        schedule[index].isPinned = true;
+        Exporter::saveToFile("schedule.txt", schedule, dm);
+        saveRawSchedule(schedule);
+
+        return 0; // Код 0 (Успех)
     }
 
     std::vector<Gene> currentSchedule;
