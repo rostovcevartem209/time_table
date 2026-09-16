@@ -1,6 +1,8 @@
 #include "genetic.h"
 #include "fitness.h"
 #include <random>
+#include <algorithm>
+#include <unordered_map>
 
 std::vector<Gene> GeneticAlgorithm::generateRandomSchedule(const DataManager& dm) {
     std::vector<Gene> schedule;
@@ -16,13 +18,20 @@ std::vector<Gene> GeneticAlgorithm::generateRandomSchedule(const DataManager& dm
         return schedule;
     }
 
+    // Словари для отслеживания занятости (чтобы не создавать жесткие конфликты на старте)
+    // Формат: ID -> массив из 32 элементов (для таймслотов с 1 по 30)
+    std::unordered_map<int, std::vector<bool>> roomOccupied;
+    std::unordered_map<int, std::vector<bool>> teacherOccupied;
+    std::unordered_map<int, std::vector<bool>> groupOccupied;
+
     for (const LessonPlan& plan : plans) {
         for (int i = 0; i < plan.requiredClasses; ++i) {
             Gene gene;
             gene.groupId = plan.groupId;
             gene.disciplineId = plan.disciplineId;
+            gene.isPinned = false;
 
-            // выбираем только тех преподавателей которые ведут этот предмет
+            // 1. Выбираем преподавателя
             std::vector<int> validTeachers;
             for (const Teacher& t : teachers) {
                 if (t.disciplineId == plan.disciplineId) {
@@ -38,13 +47,69 @@ std::vector<Gene> GeneticAlgorithm::generateRandomSchedule(const DataManager& dm
                 gene.teacherId = teachers[0].id;
             }
 
-            std::uniform_int_distribution<> roomDist(0, rooms.size() - 1);
-            gene.roomId = rooms[roomDist(gen)].id;
+            // Инициализируем трекеры, если их еще нет
+            if (teacherOccupied.find(gene.teacherId) == teacherOccupied.end()) {
+                teacherOccupied[gene.teacherId] = std::vector<bool>(32, false);
+            }
+            if (groupOccupied.find(gene.groupId) == groupOccupied.end()) {
+                groupOccupied[gene.groupId] = std::vector<bool>(32, false);
+            }
 
-            std::uniform_int_distribution<> timeDist(1, 30);
-            gene.timeSlotId = timeDist(gen);
+            // 2. УМНЫЙ ПОИСК СВОБОДНОГО МЕСТА
+            bool placed = false;
 
-            gene.isPinned = false;
+            // Перемешиваем таймслоты (1-30), чтобы не забивать только понедельники
+            std::vector<int> timeSlots(30);
+            for (int t = 0; t < 30; ++t) timeSlots[t] = t + 1;
+            std::shuffle(timeSlots.begin(), timeSlots.end(), gen);
+
+            // Перемешиваем индексы аудиторий
+            std::vector<int> roomIndices(rooms.size());
+            for (size_t r = 0; r < rooms.size(); ++r) roomIndices[r] = r;
+
+            for (int t : timeSlots) {
+                // Если преподаватель или группа уже заняты в это время - пропускаем
+                if (groupOccupied[gene.groupId][t] || teacherOccupied[gene.teacherId][t]) {
+                    continue;
+                }
+
+                std::shuffle(roomIndices.begin(), roomIndices.end(), gen);
+
+                // Ищем первую свободную аудиторию
+                for (int rIdx : roomIndices) {
+                    int rId = rooms[rIdx].id;
+
+                    if (roomOccupied.find(rId) == roomOccupied.end()) {
+                        roomOccupied[rId] = std::vector<bool>(32, false);
+                    }
+
+                    if (!roomOccupied[rId][t]) {
+                        // Нашли идеальное место!
+                        gene.timeSlotId = t;
+                        gene.roomId = rId;
+
+                        // Бронируем место
+                        roomOccupied[rId][t] = true;
+                        groupOccupied[gene.groupId][t] = true;
+                        teacherOccupied[gene.teacherId][t] = true;
+
+                        placed = true;
+                        break;
+                    }
+                }
+                if (placed) break;
+            }
+
+            // Если расписание перегружено и идеального места не нашлось, 
+            // ставим наугад (штраф за это потом исправит генетика)
+            if (!placed) {
+                std::uniform_int_distribution<> roomDist(0, rooms.size() - 1);
+                gene.roomId = rooms[roomDist(gen)].id;
+
+                std::uniform_int_distribution<> timeDist(1, 30);
+                gene.timeSlotId = timeDist(gen);
+            }
+
             schedule.push_back(gene);
         }
     }

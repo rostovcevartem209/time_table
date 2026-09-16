@@ -35,9 +35,11 @@ std::vector<Gene> loadRawSchedule() {
     return schedule;
 }
 
-// функция для запуска эволюции
+// Улучшенная функция запуска эволюции с элитизмом и логами
 std::vector<Gene> runEvolution(const DataManager& dm, const std::vector<Gene>& existingSchedule = {}) {
-    int populationSize = 50;
+    int populationSize = 150; // Увеличили объем популяции
+    int generations = 2000;    // Дали больше времени на поиск
+
     std::vector<std::vector<Gene>> population(populationSize);
 
     for (int i = 0; i < populationSize; ++i) {
@@ -54,26 +56,43 @@ std::vector<Gene> runEvolution(const DataManager& dm, const std::vector<Gene>& e
     }
 
     std::vector<Gene> bestSchedule = population[0];
-    // передаем dm в расчет штрафа
     int bestPenalty = Fitness::calculatePenalty(bestSchedule, dm);
 
-    int generations = 100;
     for (int gen = 0; gen < generations; ++gen) {
+        // Ищем лучшего в текущем поколении
+        int localBestPenalty = Fitness::calculatePenalty(population[0], dm);
+        int bestIdx = 0;
+
         for (int i = 0; i < populationSize; ++i) {
-            // передаем dm в расчет штрафа
             int penalty = Fitness::calculatePenalty(population[i], dm);
-            if (penalty < bestPenalty) {
-                bestPenalty = penalty;
-                bestSchedule = population[i];
+            if (penalty < localBestPenalty) {
+                localBestPenalty = penalty;
+                bestIdx = i;
             }
         }
 
+        if (localBestPenalty < bestPenalty) {
+            bestPenalty = localBestPenalty;
+            bestSchedule = population[bestIdx];
+        }
+
+        // Выводим прогресс каждые 50 поколений
+        if (gen % 50 == 0) {
+            std::cout << "Поколение " << gen << " | Штраф: " << bestPenalty << "\n";
+        }
+
         if (bestPenalty == 0) {
+            std::cout << "Идеальное расписание найдено на поколении " << gen << "!\n";
             break;
         }
 
         std::vector<std::vector<Gene>> newPopulation(populationSize);
-        for (int i = 0; i < populationSize; ++i) {
+
+        // ЭЛИТИЗМ: Сохраняем абсолютного лидера в новое поколение напрямую
+        newPopulation[0] = bestSchedule;
+
+        // Заполняем остальную часть через кроссовер и мутацию
+        for (int i = 1; i < populationSize; ++i) {
             std::vector<Gene> parent1 = GeneticAlgorithm::tournamentSelection(population, dm);
             std::vector<Gene> parent2 = GeneticAlgorithm::tournamentSelection(population, dm);
 

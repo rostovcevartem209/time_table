@@ -1,7 +1,6 @@
 #include "fitness.h"
 #include "validator.h"
-#include <map>
-#include <algorithm>
+#include <vector>
 
 int Fitness::calculatePenalty(const std::vector<Gene>& schedule, const DataManager& dm) {
     int penalty = 0;
@@ -9,36 +8,41 @@ int Fitness::calculatePenalty(const std::vector<Gene>& schedule, const DataManag
     int hardConflicts = Validator::countHardConflicts(schedule, dm);
     penalty += hardConflicts * 1000;
 
-    std::map<int, std::map<int, std::vector<int>>> groupDays;
+    int maxGroupId = 0;
+    for (const auto& g : dm.getGroups()) {
+        if (g.id > maxGroupId) maxGroupId = g.id;
+    }
+
+    // Структура для мгновенного подсчета окон без ресурсоемкой сортировки
+    struct DayStats {
+        int first = 99;
+        int last = -1;
+        int count = 0;
+    };
+    std::vector<std::vector<DayStats>> groupStats(maxGroupId + 1, std::vector<DayStats>(5));
 
     for (const Gene& gene : schedule) {
         int dayIndex = (gene.timeSlotId - 1) / 6;
-        groupDays[gene.groupId][dayIndex].push_back(gene.timeSlotId);
+        auto& stats = groupStats[gene.groupId][dayIndex];
+
+        if (gene.timeSlotId < stats.first) stats.first = gene.timeSlotId;
+        if (gene.timeSlotId > stats.last) stats.last = gene.timeSlotId;
+        stats.count++;
     }
 
-    for (auto& groupPair : groupDays) {
-        for (auto& dayPair : groupPair.second) {
-            std::vector<int>& slots = dayPair.second;
-
-            if (slots.size() > 1) {
-                std::sort(slots.begin(), slots.end());
-
-                int firstSlot = slots.front();
-                int lastSlot = slots.back();
-
-                int expectedCount = lastSlot - firstSlot + 1;
-                int actualCount = slots.size();
-                int windows = expectedCount - actualCount;
-
-                // штраф за окна
+    // Оценка окон и перегрузов
+    for (int g = 0; g <= maxGroupId; ++g) {
+        for (int d = 0; d < 5; ++d) {
+            const auto& stats = groupStats[g][d];
+            if (stats.count > 1) {
+                int expectedCount = stats.last - stats.first + 1;
+                int windows = expectedCount - stats.count;
                 if (windows > 0) {
                     penalty += windows * 10;
                 }
             }
-
-            // штраф за перегрузку больше 4 пар в день
-            if (slots.size() > 4) {
-                penalty += (slots.size() - 4) * 20;
+            if (stats.count > 4) {
+                penalty += (stats.count - 4) * 20;
             }
         }
     }

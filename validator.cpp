@@ -1,63 +1,59 @@
 #include "validator.h"
+#include <vector>
 
 int Validator::countHardConflicts(const std::vector<Gene>& schedule, const DataManager& dm) {
     int conflicts = 0;
 
-    const std::vector<Group>& groups = dm.getGroups();
-    const std::vector<Room>& rooms = dm.getRooms();
-    const std::vector<Discipline>& disciplines = dm.getDisciplines();
-    const std::vector<Teacher>& teachers = dm.getTeachers();
+    const auto& groups = dm.getGroups();
+    const auto& rooms = dm.getRooms();
+    const auto& disciplines = dm.getDisciplines();
+    const auto& teachers = dm.getTeachers();
 
-    for (size_t i = 0; i < schedule.size(); ++i) {
+    // Находим максимальные ID для выделения непрерывных массивов
+    int maxGroupId = 0, maxRoomId = 0, maxTeacherId = 0, maxDiscId = 0;
+    for (const auto& g : groups) if (g.id > maxGroupId) maxGroupId = g.id;
+    for (const auto& r : rooms) if (r.id > maxRoomId) maxRoomId = r.id;
+    for (const auto& t : teachers) if (t.id > maxTeacherId) maxTeacherId = t.id;
+    for (const auto& d : disciplines) if (d.id > maxDiscId) maxDiscId = d.id;
 
-        // проверка вместимости и типа аудитории
-        int students = 0;
-        for (const Group& g : groups) {
-            if (g.id == schedule[i].groupId) students = g.studentsCount;
-        }
+    // Векторы работают в сотни раз быстрее словарей!
+    std::vector<int> groupStudents(maxGroupId + 1, 0);
+    for (const auto& g : groups) groupStudents[g.id] = g.studentsCount;
 
-        int roomCapacity = 0;
-        int roomType = 0;
-        for (const Room& r : rooms) {
-            if (r.id == schedule[i].roomId) {
-                roomCapacity = r.capacity;
-                roomType = r.type;
-            }
-        }
+    std::vector<int> roomCapacity(maxRoomId + 1, 0);
+    std::vector<int> roomType(maxRoomId + 1, 0);
+    for (const auto& r : rooms) { roomCapacity[r.id] = r.capacity; roomType[r.id] = r.type; }
 
-        if (students > roomCapacity) {
-            conflicts++;
-        }
+    std::vector<int> discType(maxDiscId + 1, 0);
+    for (const auto& d : disciplines) discType[d.id] = d.type;
 
-        // проверка оборудования компьютерный класс для программирования
-        int discType = 0;
-        for (const Discipline& d : disciplines) {
-            if (d.id == schedule[i].disciplineId) discType = d.type;
-        }
+    std::vector<int> teacherUnavail(maxTeacherId + 1, -1);
+    for (const auto& t : teachers) teacherUnavail[t.id] = t.unavailableDay;
 
-        if (discType == 1 && roomType != 1) {
-            conflicts++;
-        }
+    // Битовые маски для таймслотов
+    std::vector<unsigned int> roomTimeMask(maxRoomId + 1, 0);
+    std::vector<unsigned int> groupTimeMask(maxGroupId + 1, 0);
+    std::vector<unsigned int> teacherTimeMask(maxTeacherId + 1, 0);
 
-        // проверка доступности преподавателя
-        int unavailDay = -1;
-        for (const Teacher& t : teachers) {
-            if (t.id == schedule[i].teacherId) unavailDay = t.unavailableDay;
-        }
+    for (const Gene& gene : schedule) {
+        if (groupStudents[gene.groupId] > roomCapacity[gene.roomId]) conflicts++;
+        if (discType[gene.disciplineId] == 1 && roomType[gene.roomId] != 1) conflicts++;
 
-        int currentDay = (schedule[i].timeSlotId - 1) / 6;
-        if (currentDay == unavailDay) {
-            conflicts++;
-        }
+        int currentDay = (gene.timeSlotId - 1) / 6;
+        if (currentDay == teacherUnavail[gene.teacherId]) conflicts++;
 
-        // проверка накладок расписания
-        for (size_t j = i + 1; j < schedule.size(); ++j) {
-            if (schedule[i].timeSlotId == schedule[j].timeSlotId) {
-                if (schedule[i].groupId == schedule[j].groupId) conflicts++;
-                if (schedule[i].teacherId == schedule[j].teacherId) conflicts++;
-                if (schedule[i].roomId == schedule[j].roomId) conflicts++;
-            }
-        }
+        unsigned int slotBit = 1 << gene.timeSlotId;
+
+        // Побитовые операции в регистрах процессора
+        if (roomTimeMask[gene.roomId] & slotBit) conflicts++;
+        else roomTimeMask[gene.roomId] |= slotBit;
+
+        if (groupTimeMask[gene.groupId] & slotBit) conflicts++;
+        else groupTimeMask[gene.groupId] |= slotBit;
+
+        if (teacherTimeMask[gene.teacherId] & slotBit) conflicts++;
+        else teacherTimeMask[gene.teacherId] |= slotBit;
     }
+
     return conflicts;
 }
